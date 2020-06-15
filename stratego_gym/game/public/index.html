@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <!--    <script src="//cdn.jsdelivr.net/npm/phaser@3.19.0/dist/phaser.js"></script>-->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.19.0/dist/phaser-arcade-physics.min.js"></script>
+    <script src="static/socket.io.js"></script>
+
+</head>
+<body>
+
+<script>
+    function colorToSigned24Bit(s) {
+        return (parseInt(s.substr(1), 16) << 8) / 256;
+    }
+
+    function parseBool(val) {
+        if ((typeof val === 'string' && (val.toLowerCase() === 'true' || val.toLowerCase() === 'yes')) || parseInt(val) === 1)
+            return true;
+        else if ((typeof val === 'string' && (val.toLowerCase() === 'false' || val.toLowerCase() === 'no')) || parseInt(val) === 0)
+            return false;
+        return null;
+    }
+
+    function forEachValidMoveRecForPiece(piece_r, piece_c, valid_moves_for_piece, fn) {
+        for (let i = 0; i < valid_moves_for_piece.length; i++) {
+            let r = valid_moves_for_piece[i][0];
+            let c = valid_moves_for_piece[i][1];
+
+            fn(curr_state_recs[r][c]);
+        }
+    }
+
+    const background_color = colorToSigned24Bit('#e6cdab');
+    const board_background_space_color = colorToSigned24Bit('#314209');
+    const board_outer_color = colorToSigned24Bit('#4b0f04');
+    var board_space_color = colorToSigned24Bit('#4171f5');
+    var board_space_enemy_color = colorToSigned24Bit('#bb353d');
+    const board_space_hover_color = colorToSigned24Bit('#be8f5f');
+    const board_space_selectable_color = colorToSigned24Bit('#b2be77');
+    const board_space_selectable_hover_color = colorToSigned24Bit('#56ea15');
+    const board_space_not_selectable_color = colorToSigned24Bit('#f5886a');
+    const obstacle_color = colorToSigned24Bit('#69beb3');
+
+
+    const PIECE_TYPE_NAMES = {
+        0: "",
+        1: "Spy\n1",
+        2: "Scout\n2",
+        3: "Miner\n3",
+        4: "Sergeant\n4",
+        5: "Lieutenant\n5",
+        6: "Captain\n6",
+        7: "Major\n7",
+        8: "Colonel\n8",
+        9: "General\n9",
+        10: "Marshall\n10",
+        11: "Flag\n ",
+        12: "Bomb\n "
+    };
+
+    var urlParams = new URLSearchParams(window.location.search);
+    var player = parseInt(urlParams.get('player'));
+    if (player === 2) {
+        player = -1;
+    }
+
+    if (player === -1) {
+        let enemy_space_color = board_space_enemy_color;
+        board_space_enemy_color = board_space_color;
+        board_space_color = enemy_space_color;
+    }
+
+    console.log(typeof urlParams.get('po'));
+
+    var partially_observable = urlParams.get('po');
+    if (partially_observable) {
+        partially_observable = parseBool(partially_observable);
+    } else {
+        partially_observable = true;
+    }
+
+    var owned_pieces_state_layer = 0;
+    var enemy_pieces_state_layer = 1;
+    if (partially_observable) {
+        enemy_pieces_state_layer = 4;
+    }
+
+    const owned_captured_layers_start = 8;
+    const owned_captured_layers_stop = 19;
+    const enemy_captured_layers_start = 20;
+    const enemy_captured_layers_stop = 31;
+
+    console.log("partially_observable:" + partially_observable);
+    console.log("partially_observable:" + enemy_pieces_state_layer);
+
+    var obstacles_state_layer = 2;
+
+    var board_outer_layer_rect = null;
+
+    var cur_state = null;
+    var state_display_needs_update = false;
+    var cur_action_step = -1;
+    var curr_valid_moves = null;
+    var action_requested = false;
+
+    var curr_state_recs = null;
+    var curr_state_background_recs = null;
+    var curr_state_labels = null;
+
+    var destroy_on_new_state = null;
+
+    var background = null;
+
+    var selected_start_space_rec = null;
+    var selected_action = null;
+
+    // with ES6 import
+    console.log(window.location.hostname);
+    var socket = io('http://' + window.location.hostname + ':7000');
+
+    socket.on('connect', function () {
+        console.log("socket.io connected");
+
+        socket.on('state_update_wait_for_action_request', function (state, action_step, reset_game) {
+            // console.log("state: " + state);
+            // console.log("action_step: " + action_step);
+            // console.log(state.length);
+
+            // console.log(valid_moves);
+            if (action_step > cur_action_step || reset_game) {
+                console.log('state_update_wait_for_action_request');
+
+                cur_action_step = action_step;
+                cur_state = state;
+                state_display_needs_update = true;
+                action_requested = false;
+            }
+        });
+
+        socket.emit("join_player_room", player)
+    });
+
+    socket.on('action_requested', function (state, action_step, valid_moves) {
+        // console.log('action_requested');
+        // console.log("state: " + state);
+        // console.log("action_step: " + action_step);
+        // console.log(state.length);
+
+        // console.log(valid_moves);
+
+        if (action_step > cur_action_step || (action_step === cur_action_step && !action_requested)) {
+            cur_action_step = action_step;
+            cur_state = state;
+            curr_valid_moves = valid_moves;
+            state_display_needs_update = true;
+            action_requested = true;
+        }
+    });
+
+    socket.on('disconnect', function () {
+        console.log("socket.io disconnected");
+        cur_action_step = -1;
+    });
+
+    var config = {
+        type: Phaser.AUTO,
+        width: 1200,
+        height: 800,
+        physics: {
+            default: 'arcade',
+            arcade: {
+                // gravity: { y: 200 }
+            }
+        },
+        scene: {
+            preload: preload,
+            create: create,
+            update: update,
+            render: render
+        }
+    };
+
+    var game = new Phaser.Game(config);
+
+    function preload() {
+        this.load.setBaseURL('http://labs.phaser.io');
+
+        this.load.image('sky', 'assets/skies/space3.png');
+        this.load.image('logo', 'assets/sprites/phaser3-logo.png');
+        this.load.image('red', 'assets/particles/red.png');
+    }
+
+
+    function create() {
+        // this.add.image(400, 300, 'sky');
+        background = this.add.rectangle(600, 400, 1200, 800, background_color, 1);
+
+        board_outer_layer_rect = this.add.rectangle(400, 400, 775, 775, board_outer_color, 1);
+        destroy_on_new_state = this.add.group();
+
+        // var particles = this.add.particles('red');
+        //
+        // var emitter = particles.createEmitter({
+        //     speed: 100,
+        //     scale: { start: 1, end: 0 },
+        //     blendMode: 'ADD'
+        // });
+        //
+        // var logo = this.physics.add.image(400, 100, 'logo');
+        //
+        // logo.setVelocity(100, 200);
+        // logo.setBounce(1, 1);
+        // logo.setCollideWorldBounds(true);
+        //
+        // emitter.startFollow(logo);
+
+
+        this.input.on('pointerdown', function (pointer) {
+
+            console.log('down, ' + pointer.x + " " + pointer.y);
+
+            // this.add.image(pointer.x, pointer.y, 'logo');
+
+        }, this);
+        this.input.setTopOnly(false)
+    }
+
+    function update() {
+        if (state_display_needs_update) {
+            state_display_needs_update = false;
+
+            console.log("state update");
+
+            destroy_on_new_state.destroy(true);
+
+            destroy_on_new_state = this.add.group();
+
+            curr_state_labels = null;
+            curr_state_recs = null;
+            curr_state_background_recs = null;
+
+
+            let action_step_for_board = cur_action_step;
+
+
+            let rows = cur_state[owned_pieces_state_layer].length;
+            let columns = cur_state[owned_pieces_state_layer][0].length;
+
+            let padding = 30;
+
+            let space_width = ((board_outer_layer_rect.width - padding) / columns);
+            let space_height = ((board_outer_layer_rect.height - padding) / rows);
+
+            let base_x = board_outer_layer_rect.getTopLeft().x + padding / 2.0;
+            let base_y = board_outer_layer_rect.getTopLeft().y + padding / 2.0;
+
+            console.log(base_x);
+            console.log(base_x + (1) * space_height);
+
+            curr_state_recs = [];
+            curr_state_labels = [];
+            curr_state_background_recs = [];
+
+            selected_start_space_rec = null;
+            selected_action = null;
+            let textcolor = '#000000';
+
+            for (let row = 0; row < rows; row++) {
+
+                curr_state_recs.push([]);
+                curr_state_labels.push([]);
+                curr_state_background_recs.push([]);
+
+                for (let column = 0; column < columns; column++) {
+
+                    let space_center_y = base_y + (rows - (row)) * space_height - space_height / 2;
+                    let space_center_x = base_x + (columns - (column)) * space_width - space_width / 2;
+
+                    let background_space = this.add.rectangle(space_center_x, space_center_y, space_width - 2, space_height - 2, board_background_space_color, 1);
+
+                    let space = this.add.rectangle(space_center_x, space_center_y, space_width - 6, space_height - 6, board_space_color, 1);
+
+                    space.stratego_row = row;
+                    space.stratego_column = column;
+
+                    space.setInteractive();
+
+                    let text = "";
+
+                    if (cur_state[owned_pieces_state_layer][row][column] !== 0) {
+                        text = PIECE_TYPE_NAMES[cur_state[owned_pieces_state_layer][row][column]];
+
+                        let val_moves_key = row + "," + column;
+
+                        let original_x = space.x;
+                        let original_y = space.y;
+
+                        if (action_requested && curr_valid_moves !== null && val_moves_key in curr_valid_moves) {
+                            let space_val_moves = curr_valid_moves[val_moves_key];
+
+                            space.on('pointerover', () => {
+                                if (selected_start_space_rec == null && selected_action == null) {
+                                    space.fillColor = board_space_hover_color;
+                                    forEachValidMoveRecForPiece(row, column, space_val_moves, (rec) => {
+                                        rec.fillColor = board_space_selectable_color
+
+                                    });
+                                }
+                            });
+
+                            space.on('pointerout', () => {
+                                if (selected_start_space_rec == null && selected_action == null) {
+                                    space.fillColor = board_space_color;
+                                    forEachValidMoveRecForPiece(row, column, space_val_moves, (rec) => {
+                                        rec.fillColor = rec.originalFillColor
+                                    });
+                                }
+                            });
+
+                            space.on('pointerdown', () => {
+                                if (selected_action == null) {
+                                    selected_start_space_rec = space;
+
+                                    let space_label = curr_state_labels[space.stratego_row][space.stratego_column];
+
+
+                                    space.fillColor = board_space_hover_color;
+
+                                    forEachValidMoveRecForPiece(row, column, space_val_moves, (rec) => {
+                                        rec.fillColor = board_space_selectable_hover_color;
+
+                                        let select_for_action = () => {
+                                            console.log("selected for action");
+                                            console.log(row, column);
+                                            selected_action = [space.stratego_row, space.stratego_column, rec.stratego_row, rec.stratego_column];
+                                            space.x = rec.x + 10;
+                                            space.y = rec.y + 10;
+                                            space_label.x = space.x;
+                                            space_label.y = space.y;
+
+                                            socket.emit("action_selected_by_browser", action_step_for_board, selected_action, player)
+                                        };
+
+                                        rec.on('pointerup', select_for_action);
+                                    });
+
+                                    let follow_mouse = (pointer) => {
+                                        space.x = pointer.x;
+                                        space.y = pointer.y;
+                                        space_label.x = space.x;
+                                        space_label.y = space.y;
+
+                                        space.depth = 1;
+                                        space_label.depth = 1;
+                                    };
+
+                                    let restore_space = () => {
+                                        if (selected_action == null) {
+                                            selected_start_space_rec = null;
+                                            space.fillColor = space.originalFillColor;
+                                            space.x = original_x;
+                                            space.y = original_y;
+                                            space_label.x = space.x;
+                                            space_label.y = space.y;
+
+                                            space.depth = 0;
+                                            space_label.depth = 0;
+                                        }
+                                        this.input.removeListener('pointermove', follow_mouse);
+                                        forEachValidMoveRecForPiece(row, column, space_val_moves, (rec) => {
+                                            rec.removeAllListeners('pointerup');
+                                            rec.fillColor = rec.originalFillColor
+                                        });
+                                        background.removeAllListeners('pointerout');
+                                    };
+
+                                    this.input.on('pointermove', follow_mouse);
+
+                                    this.input.on('pointerup', restore_space);
+                                    board_outer_layer_rect.on('pointerout', restore_space);
+                                }
+                            });
+
+                        } else {
+                            space.on('pointerover', () => {
+                                if (selected_start_space_rec == null && selected_action == null) {
+                                    space.fillColor = board_space_not_selectable_color;
+                                }
+                            });
+                            space.on('pointerout', () => {
+                                if (selected_start_space_rec == null && selected_action == null) {
+                                    space.fillColor = space.originalFillColor;
+                                }
+                            });
+                        }
+
+
+                    } else if (cur_state[enemy_pieces_state_layer][row][column] !== 0) {
+                        text = PIECE_TYPE_NAMES[cur_state[enemy_pieces_state_layer][row][column]];
+                        space.on('pointerover', () => {
+                            if (selected_start_space_rec == null && selected_action == null) {
+                                space.fillColor = board_space_not_selectable_color;
+                            }
+                        });
+                        space.on('pointerout', () => {
+                            if (selected_start_space_rec == null && selected_action == null) {
+                                space.fillColor = space.originalFillColor;
+                            }
+                        });
+                        space.fillColor = board_space_enemy_color;
+
+                    } else if (cur_state[obstacles_state_layer][row][column] !== 0) {
+                        text = "";
+                        space.fillColor = obstacle_color;
+                        background_space.fillColor = obstacle_color;
+                    } else {
+                        space.fillColor = board_background_space_color;
+                    }
+                    space.originalFillColor = space.fillColor;
+
+
+                    let label = this.add.text(space_center_x, space_center_y, text, {
+                        fontFamily: 'Arial',
+                        color: textcolor,
+                        align: 'center',
+                    }).setFontSize(14);
+                    label.setOrigin(0.5);
+
+
+                    // curr_state_recs[row].push(space);
+
+                    destroy_on_new_state.add(space);
+                    destroy_on_new_state.add(label);
+                    destroy_on_new_state.add(background_space);
+
+                    curr_state_recs[row].push(space);
+                    curr_state_labels[row].push(label);
+                    curr_state_background_recs[row].push(background_space);
+                    // this.debug.body(space);
+                }
+            }
+
+            // the size of captured pieces is not based on number of spaces in the board
+            space_width = 74.5;
+            space_height = 74.5;
+
+            let owned_captured_class_cnt = 0;
+            for (let owned_captured_layer = owned_captured_layers_start; owned_captured_layer < owned_captured_layers_stop; owned_captured_layer++) {
+
+                // sum of 2d array
+                let captured_piece_count = cur_state[owned_captured_layer].reduce((acc, elem) => acc + elem.reduce((acc, elem) => acc + elem, 0), 0);
+                if (captured_piece_count > 0) {
+                    owned_captured_class_cnt += 1;
+
+                    let layer_offset = owned_captured_layer - owned_captured_layers_start;
+
+                    let rollover_layer = 8;
+                    let space_center_x = 0;
+                    let space_center_y = 0;
+                    if (owned_captured_class_cnt < rollover_layer) {
+                        space_center_y = base_y + (owned_captured_class_cnt) * space_height - space_height / 2;
+                        space_center_x = 1050;
+                    } else {
+                        space_center_y = base_y + (owned_captured_class_cnt + 1 - rollover_layer) * space_height - space_height / 2;
+                        space_center_x = 1150;
+                    }
+
+                    let captured_space = this.add.rectangle(space_center_x, space_center_y, space_height - 6, space_width - 6, board_space_color, 1);
+
+                    let text = PIECE_TYPE_NAMES[(owned_captured_layer - owned_captured_layers_start) + 1];
+                    let captured_label = this.add.text(space_center_x, space_center_y, text, {
+                        fontFamily: 'Arial',
+                        color: textcolor,
+                        align: 'center',
+                    }).setFontSize(14);
+                    captured_label.setOrigin(0.5);
+
+                    let captured_count_text = "x" + captured_piece_count;
+                    let captured_count = this.add.text(space_center_x + 20, space_center_y + 20, captured_count_text, {
+                        fontFamily: 'Arial',
+                        color: textcolor,
+                        align: 'center',
+                    }).setFontSize(14);
+                    captured_count.setOrigin(0.5);
+
+                    destroy_on_new_state.add(captured_space);
+                    destroy_on_new_state.add(captured_label);
+                    destroy_on_new_state.add(captured_count);
+                }
+
+            }
+
+            let enemy_captured_class_cnt = 0;
+            for (let enemy_captured_layer = enemy_captured_layers_start; enemy_captured_layer < enemy_captured_layers_stop; enemy_captured_layer++) {
+
+                // sum of 2d array
+                let captured_piece_count = cur_state[enemy_captured_layer].reduce((acc, elem) => acc + elem.reduce((acc, elem) => acc + elem, 0), 0);
+
+                if (captured_piece_count > 0) {
+                    enemy_captured_class_cnt += 1;
+
+                    let layer_offset = enemy_captured_layer - enemy_captured_layers_start;
+
+                    let rollover_layer = 8;
+                    let space_center_x = 0;
+                    let space_center_y = 0;
+                    if (enemy_captured_class_cnt < rollover_layer) {
+                        space_center_y = base_y + (enemy_captured_class_cnt) * space_height - space_height / 2;
+                        space_center_x = 850;
+                    } else {
+                        space_center_y = base_y + (enemy_captured_class_cnt + 1 - rollover_layer) * space_height - space_height / 2;
+                        space_center_x = 950;
+                    }
+
+                    let captured_space = this.add.rectangle(space_center_x, space_center_y, space_height - 6, space_width - 6, board_space_enemy_color, 1);
+
+                    let text = PIECE_TYPE_NAMES[(enemy_captured_layer - enemy_captured_layers_start) + 1];
+                    let captured_label = this.add.text(space_center_x, space_center_y, text, {
+                        fontFamily: 'Arial',
+                        color: textcolor,
+                        align: 'center',
+                    }).setFontSize(14);
+                    captured_label.setOrigin(0.5);
+
+                    let captured_count_text = "x" + captured_piece_count;
+                    let captured_count = this.add.text(space_center_x + 20, space_center_y + 20, captured_count_text, {
+                        fontFamily: 'Arial',
+                        color: textcolor,
+                        align: 'center',
+                    }).setFontSize(14);
+                    captured_count.setOrigin(0.5);
+
+                    destroy_on_new_state.add(captured_space);
+                    destroy_on_new_state.add(captured_label);
+                    destroy_on_new_state.add(captured_count);
+                }
+            }
+
+
+        }
+    }
+
+    function render() {
+        // let rows = cur_state[0].length;
+        // let columns = cur_state[0][0].length;
+        //
+        //     for (let row = 0; row < rows; row++) {
+        //         for (let column = 0; column < columns; column++) {
+        //             this.debug.body(curr_state_recs[row][column]);
+        //         }
+        //     }
+    }
+</script>
+</body>
+</html>
