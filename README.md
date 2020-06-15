@@ -27,7 +27,7 @@ A loop for two humans to player each other using a web-browser interface.
 In Stratego, only certain actions are valid/legal in each turn. In our implementation, choosing an invalid action throws an exception.
 To compensate for this, the observation space is a dict comprising of multiple parts, including the actual "board" view and a mask of valid actions, where 1 means valid and 0 means invalid.
 
-In our deep rienforcement learning experiments using convolutional networks, a spatially oriented 3D discrete action space was easier to learn with compared to a 1D discrete action space.  
+In our deep reinforcement learning experiments using convolutional networks, a spatially oriented 3D discrete action space was easier to learn with compared to a 1D discrete action space.  
 
 The valid_actions_mask observation component is of the shape, (board_width x board_height x ways_to_move_a_peice).  
 
