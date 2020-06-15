@@ -22,7 +22,7 @@ A similar loop as above, demonstrating OpenAI-Gym style functionality for a sing
 [pvp.py](https://github.com/JBLanier/stratego_gym/blob/master/stratego_gym/examples/pvp.py)  
 A loop for two humans to player each other using a web-browser interface.
 
-## Observation and Action Shapes
+## Valid Actions and Action Space Shapes
 
 In Stratego, only certain actions are valid/legal in each turn. In our implementation, choosing an invalid action throws an exception.
 To compensate for this, the observation space is a dict comprising of multiple parts, including the actual "board" view and a mask of valid actions, where 1 means valid and 0 means invalid.
