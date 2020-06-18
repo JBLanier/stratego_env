@@ -1,8 +1,8 @@
-from stratego_gym.game.enums import GameVersions
-from stratego_gym.game.stratego_human_server import StrategoHumanGUIServer
-from stratego_gym.game.stratego_procedural_env import StrategoProceduralEnv
-from stratego_gym.game.util import get_random_human_init_fn
-from stratego_gym.stratego_multiagent_env import VERSION_CONFIGS
+from stratego_env.game.enums import GameVersions
+from stratego_env.game.stratego_human_server import StrategoHumanGUIServer
+from stratego_env.game.stratego_procedural_env import StrategoProceduralEnv
+from stratego_env.game.util import get_random_human_init_fn
+from stratego_env.stratego_multiagent_env import VERSION_CONFIGS
 
 """
 Launches a game UI at 

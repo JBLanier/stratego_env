@@ -3,7 +3,7 @@ from typing import Tuple
 
 import numpy as np
 
-from stratego_gym.game.stratego_procedural_impl import INT_DTYPE_NP, StateLayers, SP, \
+from stratego_env.game.stratego_procedural_impl import INT_DTYPE_NP, StateLayers, SP, \
     _get_max_possible_actions_per_start_position, _create_initial_state, _get_action_size, \
     _get_action_1d_index_from_positions, _get_action_positions_from_1d_index, _get_valid_moves_as_1d_mask, \
     _get_state_from_player_perspective, _get_action_positions_from_player_perspective, \

@@ -8,8 +8,8 @@ import numpy as np
 import socketio
 from socketio.exceptions import ConnectionError
 
-from stratego_gym.game.config import STANDARD_STRATEGO_CONFIG
-from stratego_gym.game.stratego_procedural_env import StrategoProceduralEnv
+from stratego_env.game.config import STANDARD_STRATEGO_CONFIG
+from stratego_env.game.stratego_procedural_env import StrategoProceduralEnv
 
 STATIC_FILES_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "public")
 

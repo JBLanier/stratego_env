@@ -10,19 +10,19 @@ from contextlib import closing
 import numpy as np
 from gym.spaces import Discrete, Box, Dict
 
-from stratego_gym.game import socket_pickle
-from stratego_gym.game.config import STANDARD_STRATEGO_CONFIG, BARRAGE_STRATEGO_CONFIG, MEDIUM_STRATEGO_CONFIG, \
+from stratego_env.game import socket_pickle
+from stratego_env.game.config import STANDARD_STRATEGO_CONFIG, BARRAGE_STRATEGO_CONFIG, MEDIUM_STRATEGO_CONFIG, \
     TINY_STRATEGO_CONFIG, MICRO_STRATEGO_CONFIG, OCTA_BARRAGE_STRATEGO_CONFIG, STANDARD_STRATEGO_CONFIG2, \
     SHORT_STANDARD_STRATEGO_CONFIG, SHORT_BARRAGE_STRATEGO_CONFIG, MEDIUM_STANDARD_STRATEGO_CONFIG, \
     FIVES_STRATEGO_CONFIG
-from stratego_gym.game.enums import ObservationModes, ObservationComponents, GameVersions
-from stratego_gym.game.stratego_procedural_env import StrategoProceduralEnv
-from stratego_gym.game.stratego_procedural_impl import RecentMoves, SP, \
+from stratego_env.game.enums import ObservationModes, ObservationComponents, GameVersions
+from stratego_env.game.stratego_procedural_env import StrategoProceduralEnv
+from stratego_env.game.stratego_procedural_impl import RecentMoves, SP, \
     FULLY_OBSERVABLE_OBS_NUM_LAYERS, PARTIALLY_OBSERVABLE_OBS_NUM_LAYERS, \
     FULLY_OBSERVABLE_OBS_NUM_LAYERS_EXTENDED, PARTIALLY_OBSERVABLE_OBS_NUM_LAYERS_EXTENDED, \
     PartiallyObservableObsLayersExtendedChannels, FullyObservableObsLayersExtendedChannels, \
     PartiallyObservableObsLayers, FullyObservableObsLayers
-from stratego_gym.game.util import get_random_initial_state_fn, get_random_human_init_fn, get_random_curriculum_init_fn
+from stratego_env.game.util import get_random_initial_state_fn, get_random_human_init_fn, get_random_curriculum_init_fn
 
 # from ray.rllib.env.multi_agent_env import MultiAgentEnv
 # from ray.tune.registry import register_env
@@ -428,7 +428,7 @@ class StrategoMultiAgentEnv:
         self.human_web_gui_port = env_config['human_web_gui_port']
         self.human_player_num = env_config['human_player_num']
         if self.vs_human:
-            from stratego_gym.game.stratego_human_server import StrategoHumanGUIServer
+            from stratego_env.game.stratego_human_server import StrategoHumanGUIServer
             self.gui_server = StrategoHumanGUIServer(base_env=self.base_env, port=self.human_web_gui_port)
 
         self.vs_bot = env_config['vs_bot']

@@ -3,11 +3,11 @@ import random
 import h5py
 import numpy as np
 
-from stratego_gym.game import stratego_procedural_env
-from stratego_gym.game.enums import GameVersions
-from stratego_gym.game.stratego_procedural_env import StrategoProceduralEnv
-from stratego_gym.game.stratego_procedural_impl import INT_DTYPE_NP
-from stratego_gym.game.stratego_procedural_impl import StateData
+from stratego_env.game import stratego_procedural_env
+from stratego_env.game.enums import GameVersions
+from stratego_env.game.stratego_procedural_env import StrategoProceduralEnv
+from stratego_env.game.stratego_procedural_impl import INT_DTYPE_NP
+from stratego_env.game.stratego_procedural_impl import StateData
 
 
 def _create_random_initial_piece_map(game_version_config: dict):
@@ -300,9 +300,9 @@ def create_game_from_data(player1_string, player2_string, game_version_config, p
 
 def get_random_human_init_fn(game_version, game_version_config, procedural_env):
     if game_version in [GameVersions.STANDARD, GameVersions.SHORT_STANDARD, GameVersions.MEDIUM_STANDARD]:
-        from stratego_gym.game.inits.standard_human_inits import STANDARD_INITS as HUMAN_INITS
+        from stratego_env.game.inits.standard_human_inits import STANDARD_INITS as HUMAN_INITS
     elif game_version in [GameVersions.BARRAGE, GameVersions.SHORT_BARRAGE]:
-        from stratego_gym.game.inits.barrage_human_inits import BARRAGE_INITS as HUMAN_INITS
+        from stratego_env.game.inits.barrage_human_inits import BARRAGE_INITS as HUMAN_INITS
     else:
         raise ValueError("Human inits not supported with {} game version".format(game_version))
 

@@ -1,4 +1,4 @@
-from stratego_gym.game.stratego_procedural_impl import SP
+from stratego_env.game.stratego_procedural_impl import SP
 
 STANDARD_STRATEGO_CONFIG = {
     'rows': 10,
