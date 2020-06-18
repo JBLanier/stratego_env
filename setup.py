@@ -6,6 +6,6 @@ setup(
     description='Stratego Env',
     author='J.B. Lanier, Stephen McAleer',
     author_email='jblanier@uci.edu',
-    packages=['stratego_gym'],
+    packages=['stratego_env'],
     install_requires=['numpy', 'eventlet', 'dill', 'gym', 'python-socketio', 'numba', 'h5py', 'requests'],
 )
