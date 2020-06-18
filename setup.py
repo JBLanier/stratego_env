@@ -1,9 +1,9 @@
 from setuptools import setup
 
 setup(
-    name='stratego_gym',
+    name='stratego_env',
     version='1.0',
-    description='Stratego Gym',
+    description='Stratego Env',
     author='J.B. Lanier, Stephen McAleer',
     author_email='jblanier@uci.edu',
     packages=['stratego_gym'],
