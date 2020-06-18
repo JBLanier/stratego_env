@@ -65,3 +65,6 @@ def nnet_choose_action_example(current_player, obs_from_env):
 ```
 This function can be seen in context in [basic_game_loop.py](https://github.com/JBLanier/stratego_gym/blob/master/stratego_gym/examples/basic_game_loop.py)
 and [env_agent_vs_human.py](https://github.com/JBLanier/stratego_gym/blob/master/stratego_gym/examples/env_agent_vs_human.py)
+
+## Initial Piece Starting Positions
+Our Stratego Environment currently does not provide an RL env interface for providing starting piece positions. Instead, each player is provided with a setup sampled from human games
