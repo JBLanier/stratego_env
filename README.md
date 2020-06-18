@@ -14,10 +14,10 @@ pip install -e .
 Included in the [examples](https://github.com/JBLanier/stratego_gym/tree/master/stratego_gym/examples) folder are:
 
 [basic_game_loop.py](https://github.com/JBLanier/stratego_gym/blob/master/stratego_gym/examples/basic_game_loop.py)  
-A basic loop demonstrating OpenAI-Gym style functionality with multiple agents.
+A basic loop demonstrating RL env functionality with multiple agents.
 
 [env_agent_vs_human.py](https://github.com/JBLanier/stratego_gym/blob/master/stratego_gym/examples/env_agent_vs_human.py)  
-A similar loop as above, demonstrating OpenAI-Gym style functionality for a single agent against a human using a web-browser interface.
+A similar loop as above, demonstrating RL env functionality for a single agent against a human using a web-browser interface.
 
 [pvp.py](https://github.com/JBLanier/stratego_gym/blob/master/stratego_gym/examples/pvp.py)  
 A loop for two humans to player each other using a web-browser interface.
