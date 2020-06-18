@@ -397,29 +397,31 @@ class StrategoMultiAgentEnv:
 
         self.observation_space = {
             ObservationComponents.VALID_ACTIONS_MASK.value: Box(
-                low=0,
-                high=1,
-                shape=self.base_env.spatial_action_size
+                low=np.float32(0),
+                high=np.float32(1),
+                shape=self.base_env.spatial_action_size,
             )}
 
         if self.observation_mode == ObservationModes.PARTIALLY_OBSERVABLE or self.observation_mode == ObservationModes.BOTH_OBSERVATIONS:
             self.observation_space[ObservationComponents.PARTIAL_OBSERVATION.value] = Box(
-                low=-1.0,
-                high=1.0,
-                shape=(rows, columns, self._p_obs_num_layers))
+                low=np.float32(-1.0),
+                high=np.float32(1.0),
+                shape=(rows, columns, self._p_obs_num_layers),
+            )
 
         if self.observation_mode == ObservationModes.FULLY_OBSERVABLE or self.observation_mode == ObservationModes.BOTH_OBSERVATIONS:
             self.observation_space[ObservationComponents.FULL_OBSERVATION.value] = Box(
-                low=-1.0,
-                high=1.0,
-                shape=(rows, columns, self._f_obs_num_layers))
+                low=np.float32(-1.0),
+                high=np.float32(1.0),
+                shape=(rows, columns, self._f_obs_num_layers),
+            )
 
         if self.observation_includes_internal_state:
             sample_state = self.random_initial_state_fn()
             self.observation_space[ObservationComponents.INTERNAL_STATE.value] = Box(
-                low=-np.inf,
-                high=np.inf,
-                shape=sample_state.shape
+                low=np.float32(-np.inf),
+                high=np.float32(np.inf),
+                shape=sample_state.shape,
             )
 
         self.observation_space = Dict(self.observation_space)

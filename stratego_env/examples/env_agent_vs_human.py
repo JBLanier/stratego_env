@@ -16,7 +16,7 @@ def nnet_choose_action_example(current_player, obs_from_env):
     nnet_example_logits_output = np.ones_like(valid_actions_mask)
 
     # invalid action logits are changed to be -inf
-    invalid_actions_are_neg_inf_valid_are_zero_mask = np.maximum(np.log(valid_actions_mask), np.finfo(np.float32).min)
+    invalid_actions_are_neg_inf_valid_are_zero_mask = np.maximum(np.log(valid_actions_mask + 1e-8), np.finfo(np.float32).min)
     filtered_nnet_logits = nnet_example_logits_output + invalid_actions_are_neg_inf_valid_are_zero_mask
 
     # reshape logits from 3D to 1D since the Stratego env accepts 1D indexes in env.step()
