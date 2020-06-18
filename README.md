@@ -67,4 +67,5 @@ This function can be seen in context in [basic_game_loop.py](https://github.com/
 and [env_agent_vs_human.py](https://github.com/JBLanier/stratego_gym/blob/master/stratego_gym/examples/env_agent_vs_human.py)
 
 ## Initial Piece Starting Positions
-Our Stratego Environment currently does not provide an RL env interface for providing starting piece positions. Instead, each player is provided with a setup sampled from human games
+
+Our Stratego Environment currently does not provide an RL env interface for providing starting piece positions. Instead, for Stratego and Barrage, each player is provided with random setups sampled from human games. For other toy variants, each player is provided with random setups.
