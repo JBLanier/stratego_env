@@ -1,4 +1,4 @@
-# Stratego Gym
+# Stratego Env
 Multi-Agent RL Environment for the Stratego Board Game (and variants)
 
 Stratego Gym provides a gym-like interface for the 2-player, zero-sum, imperfect-information game, Stratego, its smaller variants like Barrage, and toy-sized versions of the game.
