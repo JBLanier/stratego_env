@@ -11,12 +11,12 @@ pip install -e .
 ```
 
 # Usage
-Included in the [examples](https://github.com/JBLanier/stratego_env/tree/master/stratego_gym/examples) folder are:
+Included in the [examples](https://github.com/JBLanier/stratego_env/tree/master/stratego_env/examples) folder are:
 
-[basic_game_loop.py](https://github.com/JBLanier/stratego_env/blob/master/stratego_gym/examples/basic_game_loop.py)  
+[basic_game_loop.py](https://github.com/JBLanier/stratego_env/blob/master/stratego_env/examples/basic_game_loop.py)  
 A basic loop demonstrating RL env functionality with multiple agents.
 
-[env_agent_vs_human.py](https://github.com/JBLanier/stratego_env/blob/master/stratego_gym/examples/env_agent_vs_human.py)  
+[env_agent_vs_human.py](https://github.com/JBLanier/stratego_env/blob/master/stratego_env/examples/env_agent_vs_human.py)  
 A similar loop as above, demonstrating RL env functionality for a single agent against a human using a web-browser interface.
 
 [pvp.py](https://github.com/JBLanier/stratego_env/blob/master/stratego_env/examples/pvp.py)  
@@ -63,8 +63,8 @@ def nnet_choose_action_example(current_player, obs_from_env):
 
     return chosen_action_index
 ```
-This function can be seen in context in [basic_game_loop.py](https://github.com/JBLanier/stratego_gym/blob/master/stratego_gym/examples/basic_game_loop.py)
-and [env_agent_vs_human.py](https://github.com/JBLanier/stratego_gym/blob/master/stratego_gym/examples/env_agent_vs_human.py)
+This function can be seen in context in [basic_game_loop.py](https://github.com/JBLanier/stratego_env/blob/master/stratego_env/examples/basic_game_loop.py)
+and [env_agent_vs_human.py](https://github.com/JBLanier/stratego_env/blob/master/stratego_env/examples/env_agent_vs_human.py)
 
 ## Initial Piece Starting Positions
 
