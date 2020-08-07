@@ -11,15 +11,15 @@ pip install -e .
 ```
 
 # Usage
-Included in the [examples](https://github.com/JBLanier/stratego_gym/tree/master/stratego_gym/examples) folder are:
+Included in the [examples](https://github.com/JBLanier/stratego_env/tree/master/stratego_gym/examples) folder are:
 
-[basic_game_loop.py](https://github.com/JBLanier/stratego_gym/blob/master/stratego_gym/examples/basic_game_loop.py)  
+[basic_game_loop.py](https://github.com/JBLanier/stratego_env/blob/master/stratego_gym/examples/basic_game_loop.py)  
 A basic loop demonstrating RL env functionality with multiple agents.
 
-[env_agent_vs_human.py](https://github.com/JBLanier/stratego_gym/blob/master/stratego_gym/examples/env_agent_vs_human.py)  
+[env_agent_vs_human.py](https://github.com/JBLanier/stratego_env/blob/master/stratego_gym/examples/env_agent_vs_human.py)  
 A similar loop as above, demonstrating RL env functionality for a single agent against a human using a web-browser interface.
 
-[pvp.py](https://github.com/JBLanier/stratego_gym/blob/master/stratego_gym/examples/pvp.py)  
+[pvp.py](https://github.com/JBLanier/stratego_env/blob/master/stratego_env/examples/pvp.py)  
 A loop for two humans to player each other using a web-browser interface.
 
 ## Valid Actions and Action Space Shapes
@@ -31,7 +31,7 @@ In our deep reinforcement learning experiments using convolutional networks, a s
 
 The valid_actions_mask observation component is of the shape, (board_width x board_height x ways_to_move_a_peice).  
 
-To maintain compatibility with existing RL libraries, our gym environment still accepts a 1D action space for env.step(). Even though the valid_actions_mask observation component is 3D, you will have to convert any chosen actions in 3D space to 1D space in order to input it to env.step().
+To maintain compatibility with existing RL libraries, our environment still accepts a 1D action space for env.step(). Even though the valid_actions_mask observation component is 3D, you will have to convert any chosen actions in 3D space to 1D space in order to input it to env.step().
 
 This concept can best be shown through this example as if we were to use a neural network policy to choose an action:
 
