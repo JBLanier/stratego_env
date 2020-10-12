@@ -5,13 +5,18 @@ import numpy as np
 from numba import int64, jit, types, boolean, float32
 
 """
-All of these functions are available as methods in StrategoProceduralEnv.
+All of these functions are also available as methods in StrategoProceduralEnv.
 The functions defined here are not intended to be called directly. 
 They are intended to be used through StrategoProceduralEnv.
+
+This logic is JIT compiled with Numba. You will encounter a hang the first time you run this code while it compiles.
+Afterward, it will be cached and you won't have to wait for it to compile.
 """
 
 """Internal State Breakdown:
 shape = (layers, rows, columns)
+
+state layers are defined by name in the StateLayers enum.
 
 layers:
 0: player 1 ground truth pieces (contents are SP enum types and CAN'T be UNKNOWN)
@@ -28,13 +33,15 @@ layers:
     state[3,1,0]: max turn count (after this many turns have happened, game is over and tied. We may or may not consider this kind of ending as invalid)
     state[3,1,1]: whether the game ending can be considered invalid (0 for False, 1 for True) (meaningless if game isn't over)
 
-6: player 1 recent moves map for enforcing rules against oscillating pieces back and forth (contents are RecentMoves enum types)
+6: player 1 recent moves map for enforcing 2-squares rule against oscillating pieces back and forth (contents are RecentMoves enum types)
     This layer (and thus move tracking) is wiped to zeros anytime player 1 makes an attack.
     (0 for no move made here recently)
-    (1 for the last piece to move came from here)
-    (-1 for the last piece to move is now here)
-    (-2 for the last piece to move is now here, and this is also the spot that it was in 2 turns ago. 
-        This piece cannot double back again (The piece here can't go to a spot marked with 1). 
+    (1 for the most recent piece to move came from here)
+    (-1 for the most recent piece to move is now here)
+    (-2 for the most recent piece to move is now here, and this is also the spot that it was in 2 turns ago.
+       This piece cannot go to a spot marked as 1 and then return here.
+    (-3 for the most recent piece to move is now here, and this is also the spot that it was in 2 turns ago.
+       This piece cannot double back again (The piece here can't go to a spot marked with 1).
 
 7: player 2 recent moves map (same rules apply)
 
@@ -60,22 +67,31 @@ FLOAT_DTYPE_JIT = float32
 
 
 class StateLayers(Enum):
+    # Fully Observable Piece Locations
     PLAYER_1_PIECES = INT_DTYPE_NP(0)
     PLAYER_2_PIECES = INT_DTYPE_NP(1)
+
     OBSTACLES = INT_DTYPE_NP(2)
 
+    # PO = Partially Observable
     PLAYER_1_PO_PIECES = INT_DTYPE_NP(3)
     PLAYER_2_PO_PIECES = INT_DTYPE_NP(4)
 
+    # Scalar Data
     DATA = INT_DTYPE_NP(5)
+
+    # 2-Squares rule tracking
     PLAYER_1_RECENT_MOVES = INT_DTYPE_NP(6)
     PLAYER_2_RECENT_MOVES = INT_DTYPE_NP(7)
 
+    # Captured piece counts at each location (1 channel per piece type per player)
+    # See _get_player_captured_piece_layer to get the correct layer for a piece type and player
     PLAYER_1_CAPTURED_PIECE_RANGE_START = INT_DTYPE_NP(8)
     PLAYER_1_CAPTURED_PIECE_RANGE_END = INT_DTYPE_NP(20)
     PLAYER_2_CAPTURED_PIECE_RANGE_START = INT_DTYPE_NP(20)
     PLAYER_2_CAPTURED_PIECE_RANGE_END = INT_DTYPE_NP(32)
 
+    # Pieces for each player that have never moved
     PLAYER_1_STILL_PIECES = INT_DTYPE_NP(32)
     PLAYER_2_STILL_PIECES = INT_DTYPE_NP(33)
 
@@ -94,6 +110,14 @@ NUM_STATE_LAYERS = 34
 
 
 class RecentMoves(Enum):
+    # For tracking the 2-squares rule
+    # (0 for no move made here recently)
+    # (1 for the most recent piece to move came from here)
+    # (-1 for the most recent piece to move is now here)
+    # (-2 for the most recent piece to move is now here, and this is also the spot that it was in 2 turns ago.
+    #   This piece cannot go to a spot marked as 1 and then return here.
+    # (-3 for the most recent piece to move is now here, and this is also the spot that it was in 2 turns ago.
+    #   This piece cannot double back again (The piece here can't go to a spot marked with 1).
     NODATA = INT_DTYPE_NP(0)
     JUST_CAME_FROM = INT_DTYPE_NP(1)
     JUST_ARRIVED = INT_DTYPE_NP(-1)
@@ -102,6 +126,9 @@ class RecentMoves(Enum):
 
 
 class StillPieces(Enum):
+    # For still pieces state layers
+    # 1 for piece has never moved
+    # 0 for piece has moved before
     COULD_BE_FLAG = INT_DTYPE_NP(1)
     CANT_BE_FLAG = INT_DTYPE_NP(0)
 
@@ -327,7 +354,7 @@ def _get_action_positions_from_1d_index(rows: INT_DTYPE_NP, columns: INT_DTYPE_N
                                         max_possible_actions_per_start_position: INT_DTYPE_NP):
     if action_index == action_size - 1:
         print("-------------------------------------------")
-        print("action index: ")
+        print("action index:")
         print(action_index)
         print("action size:")
         print(action_size)
@@ -415,8 +442,6 @@ def _get_valid_moves_as_spatial_mask(state: np.ndarray, player: INT_DTYPE_NP):
                                 # piece can't double back here due to rules about oscillating in the same place
                                 # doesn't stop the search for moves in this direction,
                                 # we just can't go specifically to this space
-                                # print("skipping double back move, player ")
-                                # print(player)
                                 continue
 
                             # If we reached this line, add this end position as a valid move,
@@ -874,7 +899,6 @@ def _get_next_state(state: np.ndarray, player: INT_DTYPE_NP, action_index: INT_D
     if not _is_move_valid_by_1d_index(state=state, player=player, action_index=action_index, action_size=action_size,
                                       max_possible_actions_per_start_position=max_possible_actions_per_start_position,
                                       allow_piece_oscillation=allow_piece_oscillation):
-        # print("action index was ", action_index)
         raise ValueError("Couldn't get the next state because the move wasn't valid.")
     # past this line, we assume that the action is valid
 
@@ -1022,6 +1046,8 @@ def _get_next_state(state: np.ndarray, player: INT_DTYPE_NP, action_index: INT_D
 
 
 class FullyObservableObsLayers(Enum):
+    # Deprecated, use FullyObservableObsLayersExtendedChannels (has individual channels for each piece type)
+
     PLAYER_1_PIECES = INT_DTYPE_NP(0)
     PLAYER_2_PIECES = INT_DTYPE_NP(1)
     OBSTACLES = INT_DTYPE_NP(2)
@@ -1041,12 +1067,14 @@ class FullyObservableObsLayers(Enum):
     PLAYER_2_STILL_PIECES = INT_DTYPE_NP(32)
 
 
-FULLY_OBSERVABLE_OBS_NUM_LAYERS = INT_DTYPE_NP(33)
+FULLY_OBSERVABLE_OBS_NUM_LAYERS = INT_DTYPE_NP(33)  # Deprecated, use FULLY_OBSERVABLE_OBS_NUM_LAYERS_EXTENDED
 
 
 @jit(float32[:, :, :](INT_DTYPE_JIT[:, :, :], INT_DTYPE_JIT, INT_DTYPE_JIT, INT_DTYPE_JIT), nopython=True,
      fastmath=True, cache=True)
 def _get_fully_observable_observation(state, player, rows, columns):
+    # Deprecated, use _get_fully_observable_observation_extended_channels (has individual channels for each piece type)
+
     state = _get_state_from_player_perspective(state=state, player=player)
 
     owned_pieces = state[StateLayers.PLAYER_1_PIECES.value]
@@ -1069,12 +1097,6 @@ def _get_fully_observable_observation(state, player, rows, columns):
 
     observation = np.empty(shape=(np.int64(rows), np.int64(columns), np.int64(FULLY_OBSERVABLE_OBS_NUM_LAYERS)),
                            dtype=np.float32)
-
-    # print(owned_pieces.shape)
-    # print(enemy_pieces.shape)
-    # print(obstacle_map.shape)
-    # print(self_recent_moves.shape)
-    # print(enemy_recent_moves.shape)
 
     observation[:, :, FullyObservableObsLayers.PLAYER_1_PIECES.value] = owned_pieces
     observation[:, :, FullyObservableObsLayers.PLAYER_2_PIECES.value] = enemy_pieces
@@ -1102,9 +1124,11 @@ def _get_fully_observable_observation(state, player, rows, columns):
 
 
 class PartiallyObservableObsLayers(Enum):
+    # Deprecated, use PartiallyObservableObsLayersExtendedChannels (has individual channels for each piece type)
+
     PLAYER_1_PIECES = INT_DTYPE_NP(0)  # actual piece values for current player's pieces, can't be SP.UNKNOWN
     PLAYER_1_PO_PIECES = INT_DTYPE_NP(1)  # piece values for current player's pieces, can be SP.UNKNOWN
-    PLAYER_2_PO_PIECES = INT_DTYPE_NP(2)  # piece values for oppenents pieces, can be SP.UNKNOWN
+    PLAYER_2_PO_PIECES = INT_DTYPE_NP(2)  # piece values for opponents pieces, can be SP.UNKNOWN
     OBSTACLES = INT_DTYPE_NP(3)
 
     PLAYER_1_RECENT_MOVES = INT_DTYPE_NP(
@@ -1121,12 +1145,14 @@ class PartiallyObservableObsLayers(Enum):
     PLAYER_2_STILL_PIECES = INT_DTYPE_NP(31)
 
 
-PARTIALLY_OBSERVABLE_OBS_NUM_LAYERS = INT_DTYPE_NP(32)
+PARTIALLY_OBSERVABLE_OBS_NUM_LAYERS = INT_DTYPE_NP(32)  # Deprecated, use PARTIALLY_OBSERVABLE_OBS_NUM_LAYERS_EXTENDED
 
 
 @jit(float32[:, :, :](INT_DTYPE_JIT[:, :, :], INT_DTYPE_JIT, INT_DTYPE_JIT, INT_DTYPE_JIT), nopython=True,
      fastmath=True, cache=True)
 def _get_partially_observable_observation(state, player, rows, columns):
+    # Deprecated, use _get_partially_observable_observation_extended_channels (has individual channels for each piece type)
+
     state = _get_state_from_player_perspective(state=state, player=player)
 
     owned_pieces = state[StateLayers.PLAYER_1_PIECES.value]
@@ -1172,16 +1198,16 @@ def _get_partially_observable_observation(state, player, rows, columns):
 
 
 class FullyObservableObsLayersExtendedChannels(Enum):
-    PLAYER_1_PIECES_RANGE_START = INT_DTYPE_NP(0)
+    PLAYER_1_PIECES_RANGE_START = INT_DTYPE_NP(0)  # piece values for current player's pieces, can't be SP.UNKNOWN
     PLAYER_1_PIECES_RANGE_END = INT_DTYPE_NP(12)
 
-    PLAYER_2_PIECES_RANGE_START = INT_DTYPE_NP(12)
+    PLAYER_2_PIECES_RANGE_START = INT_DTYPE_NP(12)  # piece values for opponent's pieces, can't be SP.UNKNOWN
     PLAYER_2_PIECES_RANGE_END = INT_DTYPE_NP(24)
 
     PLAYER_1_PO_PIECES_RANGE_START = INT_DTYPE_NP(24)  # piece values for current player's pieces, can be SP.UNKNOWN
     PLAYER_1_PO_PIECES_RANGE_END = INT_DTYPE_NP(37)
 
-    PLAYER_2_PO_PIECES_RANGE_START = INT_DTYPE_NP(37)  # piece values for oppenents pieces, can be SP.UNKNOWN
+    PLAYER_2_PO_PIECES_RANGE_START = INT_DTYPE_NP(37)  # piece values for opponent's pieces, can be SP.UNKNOWN
     PLAYER_2_PO_PIECES_RANGE_END = INT_DTYPE_NP(50)
 
     OBSTACLES = INT_DTYPE_NP(50)
@@ -1278,14 +1304,13 @@ def _get_fully_observable_observation_extended_channels(state, player, rows, col
 
 
 class PartiallyObservableObsLayersExtendedChannels(Enum):
-    PLAYER_1_PIECES_RANGE_START = INT_DTYPE_NP(
-        0)  # actual piece values for current player's pieces, can't be SP.UNKNOWN
+    PLAYER_1_PIECES_RANGE_START = INT_DTYPE_NP(0)  # piece values for current player's pieces, can't be SP.UNKNOWN
     PLAYER_1_PIECES_RANGE_END = INT_DTYPE_NP(12)
 
     PLAYER_1_PO_PIECES_RANGE_START = INT_DTYPE_NP(12)  # piece values for current player's pieces, can be SP.UNKNOWN
     PLAYER_1_PO_PIECES_RANGE_END = INT_DTYPE_NP(25)
 
-    PLAYER_2_PO_PIECES_RANGE_START = INT_DTYPE_NP(25)  # piece values for oppenents pieces, can be SP.UNKNOWN
+    PLAYER_2_PO_PIECES_RANGE_START = INT_DTYPE_NP(25)  # piece values for opponents pieces, can be SP.UNKNOWN
     PLAYER_2_PO_PIECES_RANGE_END = INT_DTYPE_NP(38)
 
     OBSTACLES = INT_DTYPE_NP(38)
@@ -1377,7 +1402,7 @@ def _get_dict_of_valid_moves_by_position(state: np.ndarray, player, rows, column
     """ Returns dict of valid moves positions where keys are starting positions and values are lists of
     corresponding end positions"""
 
-    # This could be sped up by not making it out of existing functions and doing extra work.
+    # This could be sped up by not making it out of existing functions.
 
     mpapsp = max_possible_actions_per_start_position
 

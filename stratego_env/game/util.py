@@ -238,7 +238,7 @@ def convert(game_line, is_left):
 # Add parameters that take in string in format of "LDAAAAAAAAKCAAAAAAAABEAAAAAAAAMDAAAAAAAA"
 # calls "convert" to convert with the string to convert it to the first four rows of the board
 # adds 0 to the rest of the board
-def create_initial_positions(player1_string, player2_string, game_version_config: dict):
+def create_initial_positions_from_human_data(player1_string, player2_string, game_version_config: dict):
     correct_board_shape = (game_version_config['rows'], game_version_config['columns'])
     initial_piece_map1 = np.zeros(shape=correct_board_shape, dtype=INT_DTYPE_NP)
     initial_piece_map2 = np.zeros(shape=correct_board_shape, dtype=INT_DTYPE_NP)
@@ -285,7 +285,7 @@ def create_game_from_data(player1_string, player2_string, game_version_config, p
     for obstacle_location in game_version_config['obstacle_locations']:
         obstacle_map[obstacle_location] = 1.0
 
-    piece_maps = create_initial_positions(player1_string, player2_string, game_version_config)
+    piece_maps = create_initial_positions_from_human_data(player1_string, player2_string, game_version_config)
 
     max_turns = game_version_config['max_turns']
 
@@ -298,7 +298,7 @@ def create_game_from_data(player1_string, player2_string, game_version_config, p
     return game
 
 
-def get_random_human_init_fn(game_version, game_version_config, procedural_env):
+def get_random_human_init_fn(game_version, game_version_config, procedural_env=None):
     if game_version in [GameVersions.STANDARD, GameVersions.SHORT_STANDARD, GameVersions.MEDIUM_STANDARD]:
         from stratego_env.game.inits.standard_human_inits import STANDARD_INITS as HUMAN_INITS
     elif game_version in [GameVersions.BARRAGE, GameVersions.SHORT_BARRAGE]:

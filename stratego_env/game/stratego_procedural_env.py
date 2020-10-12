@@ -127,7 +127,7 @@ class StrategoProceduralEnv(object):
     def get_valid_moves_as_spatial_mask(self, state, player):
         return _get_valid_moves_as_spatial_mask(state=state, player=INT_DTYPE_NP(player))
 
-    def get_action_1d_index_from_spatial_index(self, spatial_index: Tuple[INT_DTYPE_NP]):
+    def get_action_1d_index_from_spatial_index(self, spatial_index):
         return _get_action_1d_index_from_spatial_index(rows=self.rows, columns=self.columns,
                                                        spatial_index=spatial_index,
                                                        max_possible_actions_per_start_position=self._mpapsp)
@@ -180,7 +180,10 @@ class StrategoProceduralEnv(object):
         return dumps(_get_partially_observable_observation(state=state, player=INT_DTYPE_NP(1), rows=self.rows,
                                                            columns=self.columns))
 
-    def print_fully_observable_board_to_console(self, state, hide_still_piece_markers=False):
+    def print_board_to_console(self, state, partially_observable=False, hide_still_piece_markers=True):
+
+        p2_state_layer = StateLayers.PLAYER_2_PO_PIECES.value if partially_observable else StateLayers.PLAYER_2_PIECES.value
+
         spaces_per_piece = 4
 
         layers, rows, columns = state.shape
@@ -197,12 +200,8 @@ class StrategoProceduralEnv(object):
                 item = ""
                 if state[StateLayers.PLAYER_1_PIECES.value, row, column] != 0:
                     item = str(state[StateLayers.PLAYER_1_PIECES.value, row, column])
-                    if item == SP.UNKNOWN.value:
-                        item = 'X'
-                elif state[StateLayers.PLAYER_2_PIECES.value, row, column] != 0:
-                    item = str(-1 * state[StateLayers.PLAYER_2_PIECES.value, row, column])
-                    if item == SP.UNKNOWN.value:
-                        item = 'X'
+                elif state[p2_state_layer, row, column] != 0:
+                    item = str(-1 * state[p2_state_layer, row, column])
                 elif state[StateLayers.OBSTACLES.value, row, column] != 0:
                     item = "R"
 

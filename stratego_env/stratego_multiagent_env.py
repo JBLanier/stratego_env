@@ -510,11 +510,12 @@ class StrategoMultiAgentEnv:
     def denormalize_p_observation(self, p_obs: np.ndarray):
         return (p_obs * self._p_obs_ranges) + self._p_obs_mids
 
-    def reset(self):
+    def reset(self, first_player_override=None, initial_state_override=None):
         """Resets the env and returns observations from ready agents.
         Returns:
             obs (dict): New observations for each ready agent.
         """
+
         if self.use_curriculum_inits:
             initial_state, likely_winner = self.random_initial_state_fn()
 
@@ -546,6 +547,15 @@ class StrategoMultiAgentEnv:
 
             self.last_initial_state = initial_state
             self.state = initial_state
+
+        if initial_state_override is not None:
+            initial_state = np.asarray(initial_state_override)
+            self.state = initial_state
+
+        if first_player_override is not None:
+            if not (first_player_override == 1 or first_player_override == -1):
+                raise ValueError("first_player_override must either be 1 or -1 if it is not set to None.")
+            self.player = first_player_override
 
         self.episodes_completed += 1
 
@@ -704,7 +714,7 @@ class StrategoMultiAgentEnv:
                     cmd, bot_move = socket_pickle.pickle_recv(self.bot_controller_socket)
                     # print("got bot move line 519")
                 except ValueError:
-                    # TODO HACK, fix this, assumes the bot won  ####################
+                    # assumes the bot won
                     dones = {1: True, -1: True, "__all__": True}
                     obs = {1: self._get_current_obs(player=1), -1: self._get_current_obs(player=-1)}
 
