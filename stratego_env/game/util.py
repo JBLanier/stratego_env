@@ -299,6 +299,9 @@ def create_game_from_data(player1_string, player2_string, game_version_config, p
 
 
 def get_random_human_init_fn(game_version, game_version_config, procedural_env=None):
+    if isinstance(game_version, GameVersions):
+        game_version = game_version.value
+        
     if game_version in [GameVersions.STANDARD.value, GameVersions.SHORT_STANDARD.value, GameVersions.MEDIUM_STANDARD.value]:
         from stratego_env.game.inits.standard_human_inits import STANDARD_INITS as HUMAN_INITS
     elif game_version in [GameVersions.BARRAGE.value, GameVersions.SHORT_BARRAGE.value]:
