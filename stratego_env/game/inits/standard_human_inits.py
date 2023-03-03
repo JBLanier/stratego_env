@@ -1,3 +1,5 @@
+# Collected from https://www.gravon.de/gravon/stratego/stratego.jsp
+
 STANDARD_INITS = [
 "BDGFDFDDDBHFLJGKDIFGEHEMCEHBDDIBJEIBHEBG",
 "DFIKFGDLFGDGHCDHIEDHBBEJDIJBEBGHDEDEBMBF",
