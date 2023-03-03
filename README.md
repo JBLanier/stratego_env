@@ -68,4 +68,4 @@ and [env_agent_vs_human.py](https://github.com/JBLanier/stratego_env/blob/master
 
 ## Initial Piece Starting Positions
 
-Our Stratego Environment currently does not provide an RL env interface for providing starting piece positions. Our current focus is on performing well after this step is completed. For Stratego and Barrage, each player is provided at the start with random setups sampled from human games from the [Gravon Stratego Archive](https://www.gravon.de/gravon/stratego/stratego.jsp). For other toy variants, each player is provided with random setups.
+Our Stratego Environment currently does not provide an RL env interface for providing starting piece positions. Our current focus is on performing well after this step is completed. For Stratego and Barrage, each player is provided at the start with random setups sampled from human games from the [Gravon Stratego archive](https://www.gravon.de/gravon/stratego/stratego.jsp). For other toy variants, each player is provided with random setups.
