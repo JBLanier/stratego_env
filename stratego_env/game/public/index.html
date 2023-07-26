@@ -61,8 +61,16 @@
         12: "Bomb\n "
     };
 
-    var urlParams = new URLSearchParams(window.location.search);
+    const parser = new URL(window.location);
+    var urlParams = parser.searchParams;
     var player = parseInt(urlParams.get('player'));
+
+    if (isNaN(player)) {
+        // reload page with a default player value
+        urlParams.set(name='player', value='-1')
+        window.location = parser.href;
+    }
+
     if (player === 2) {
         player = -1;
     }
