@@ -12,7 +12,7 @@ setup(
         'eventlet',
         'dill',
         'gym',
-        'python-socketio==4.6.0',  # https://github.com/JBLanier/stratego_env/issues/1
+        'python-socketio==5.16.2',  # https://github.com/JBLanier/stratego_env/issues/1
         'Flask-SocketIO==4.3.1',
         'python-engineio==3.13.2',
         'numba',
